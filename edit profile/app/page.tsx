@@ -1,39 +1,26 @@
+"use client";
+
 import Link from 'next/link';
+import ProfileHeader from '../components/ProfileHeader';
+import { useUserProfile } from '../components/providers/UserProfileProvider'; // หมายเหตุ: คุณต้องสร้าง/คัดลอก Provider นี้มาไว้ในโปรเจกต์ 'edit profile'
 
-export default function Home() {
+export default function AccountPage() {
+  // สมมติว่ามี UserProfileProvider ห่อหุ้มหน้านี้อยู่ใน layout file
+  const { profile } = useUserProfile();
+
   return (
-    <div className="app-container page-account">
-      <div className="header-index">
-        <div className="top-bar">
-          <div className="page-title">บัญชีผู้ใช้</div>
-          <Link href="#" className="settings-btn">
-            <span className="material-symbols-outlined">settings</span> ตั้งค่า
-          </Link>
-        </div>
-        
-        <div className="profile-section">
-          <div className="avatar-wrapper">
-            <img src="/avatar.png" alt="Profile" className="avatar" />
-            <div className="avatar-badge" style={{ backgroundColor: '#c93b9e' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>photo_camera</span>
-            </div>
-          </div>
-          <div className="profile-info">
-            <div className="profile-name">ศิญาพร  ชำนิราศิริกูล</div>
-            <div className="profile-phone">เบอร์มือถือ: 09*-***-1234</div>
-            <div className="verified-badge">
-              <span className="material-symbols-outlined">check_circle</span>
-              ยืนยันตัวตนแล้ว
-            </div>
-          </div>
-          <Link href="/personal_info" className="edit-btn">
-            <span className="material-symbols-outlined" style={{color: '#666', fontSize: '24px'}}>edit</span>
-          </Link>
-        </div>
-      </div>
+    <div className="app-container page-account bg-white">
+      <ProfileHeader
+        avatarUrl={profile.avatarUrl || '/avatar.png'}
+        name={profile.fullName}
+        phone={profile.phone}
+        verified={profile.isVerified}
+        editLink="/personal_info"
+      />
 
-      <div className="section-title">จัดการบัญชี</div>
-      <div className="menu-list">
+      <div className="p-4">
+        <div className="section-title">จัดการบัญชี</div>
+        <div className="menu-list">
         <Link href="#" className="menu-item">
           <div className="menu-icon"><span className="material-symbols-outlined">bolt</span></div>
           <div className="menu-content"><div className="menu-label">จัดการสถานที่ใช้ไฟฟ้า</div></div>
@@ -60,8 +47,8 @@ export default function Home() {
         </Link>
       </div>
 
-      <div className="section-title">ความช่วยเหลือ</div>
-      <div className="menu-list">
+        <div className="section-title">ความช่วยเหลือ</div>
+        <div className="menu-list">
         <Link href="#" className="menu-item">
           <div className="menu-icon"><span className="material-symbols-outlined">store</span></div>
           <div className="menu-content"><div className="menu-label">สาขาและช่องทางให้บริการ</div></div>
@@ -94,8 +81,8 @@ export default function Home() {
         </Link>
       </div>
 
-      <div className="section-title">ข้อกำหนดและเงื่อนไข</div>
-      <div className="menu-list">
+        <div className="section-title">ข้อกำหนดและเงื่อนไข</div>
+        <div className="menu-list">
         <Link href="#" className="menu-item">
           <div className="menu-icon"><span className="material-symbols-outlined">gpp_good</span></div>
           <div className="menu-content"><div className="menu-label">นโยบายคุ้มครองข้อมูลส่วนบุคคล</div></div>
@@ -108,8 +95,8 @@ export default function Home() {
         </Link>
       </div>
 
-      <br/>
-      <div className="menu-list">
+        <br/>
+        <div className="menu-list">
         <Link href="#" className="menu-item">
           <div className="menu-icon"><span className="material-symbols-outlined">logout</span></div>
           <div className="menu-content"><div className="menu-label">ออกจากระบบ</div></div>
@@ -117,9 +104,10 @@ export default function Home() {
         </Link>
       </div>
 
-      <div className="footer-text">
+        <div className="footer-text">
         เวอร์ชัน 0.0.0<br/>
         © 2568 การไฟฟ้าส่วนภูมิภาค
+      </div>
       </div>
 
       <div className="bottom-nav">
@@ -139,7 +127,7 @@ export default function Home() {
           <img src="/images/nav-bar4.svg" alt="Points" width="24" height="24" />
           พอยต์
         </Link>
-        <Link href="#" className="nav-item active">
+        <Link href="/" className="nav-item active">
           <img src="/images/user-avatar-1.svg" alt="Profile" width="24" height="24" />
           โปรไฟล์
         </Link>

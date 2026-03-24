@@ -1,25 +1,18 @@
-import type { Metadata } from "next";
-import { Prompt } from "next/font/google";
 import "./globals.css";
+import { UserProfileProvider } from "../components/providers/UserProfileProvider";
 
-const prompt = Prompt({
-  subsets: ["latin", "thai"],
-  weight: ["300", "400", "500", "600"],
-});
-
-export const metadata: Metadata = {
-  title: "Mockup App",
-  description: "Mockup application",
-};
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="th">
-      <body className={prompt.className}>{children}</body>
+    <html lang="en">
+      <head>
+        <link
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+          rel="stylesheet"
+        />
+      </head>
+      <body>
+        <UserProfileProvider>{children}</UserProfileProvider>
+      </body>
     </html>
   );
 }
