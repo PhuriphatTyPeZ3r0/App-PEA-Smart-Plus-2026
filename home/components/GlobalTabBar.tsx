@@ -37,7 +37,7 @@ const TAB_ITEMS: TabItem[] = [
     activeIcon: "/asset/tab-bar-asset/active-watt-d-point.png",
   },
   {
-    href: "/edit-profile",
+    href: "/edit%20profile",
     label: "โปรไฟล์",
     icon: "/asset/tab-bar-asset/user-avatar-nav-bar.svg",
     activeIcon: "/asset/tab-bar-asset/active-avatar-nav-bar.png",
