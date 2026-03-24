@@ -24,7 +24,7 @@ const SECTIONS: ServiceSection[] = [
     items: [
       { label: "ประวัติการใช้ไฟฟ้า", icon: "chart" },
       { label: "QR/บาร์โค้ด", icon: "qr" },
-      { label: "แจ้งปัญหาไฟฟ้าดับ", icon: "pin" },
+      { label: "แจ้งปัญหาไฟฟ้าดับ", icon: "pin", url: "http://localhost:5000" },
       { label: "ดูและจ่ายบิล", icon: "bill" },
       { label: "ดูการใช้ไฟฟ้าปัจจุบัน", icon: "bolt" },
       { label: "ประมาณการค่าไฟฟ้า", icon: "graph" },

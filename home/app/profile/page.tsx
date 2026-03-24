@@ -59,7 +59,7 @@ export default function AccountPage() {
           <div className="flex-1 text-[14px] text-[#2b2b2b]">คำถามที่พบบ่อย/แนะนำการใช้งาน</div>
           <div className="text-[#ccc] text-[20px]"><span className="material-symbols-outlined">chevron_right</span></div>
         </Link>
-        <Link href="#" className="flex items-center p-4 border-b border-[#f2f2f2] hover:bg-[#fcfcfc]">
+        <Link href="/power-failure-report" className="flex items-center p-4 border-b border-[#f2f2f2] hover:bg-[#fcfcfc]">
           <div className="w-8 mr-3 text-[#7b818d] flex justify-center"><span className="material-symbols-outlined">electrical_services</span></div>
           <div className="flex-1 text-[14px] text-[#2b2b2b]">แจ้งเหตุไฟฟ้าขัดข้อง</div>
           <div className="text-[#ccc] text-[20px]"><span className="material-symbols-outlined">chevron_right</span></div>
