@@ -9,7 +9,13 @@ import { useRouter } from "next/navigation";
 export default function HomePage() {
   const { profile } = useUserProfile();
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
+  // ใช้ sessionStorage เพื่อแสดงโหลดแค่ครั้งแรกของ session
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== "undefined") {
+      return sessionStorage.getItem("hasLoadedHome") !== "true";
+    }
+    return true;
+  });
 
   const sharedUser = {
     id: profile.id,
@@ -26,12 +32,15 @@ export default function HomePage() {
     localStorage.setItem("UserAccIdenNumber", profile.idenNumber);
     localStorage.setItem("SetLanguage", "TH");
 
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1500);
-
-    return () => clearTimeout(timer);
-  }, [profile.idenNumber]);
+    // ถ้ายังไม่เคยเข้า Home ใน session นี้ ให้แสดงโหลด แล้ว set flag
+    if (loading) {
+      const timer = setTimeout(() => {
+        setLoading(false);
+        sessionStorage.setItem("hasLoadedHome", "true");
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [profile.idenNumber, loading]);
 
   useEffect(() => {
     if (!loading) {
