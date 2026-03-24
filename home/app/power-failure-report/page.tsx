@@ -32,7 +32,7 @@ export default function PowerFailureReportPage() {
   useEffect(() => {
     async function fetchOutageTypes() {
       try {
-        const res = await fetch('/API/Outage/OutageType', {
+        const res = await fetch('https://smartplus3-api-dev.pea.co.th/API/Outage/OutageType', {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
@@ -65,7 +65,7 @@ export default function PowerFailureReportPage() {
         lang: 'TH'
       };
       
-      const res = await fetch('/API/Outage/History', {
+      const res = await fetch('https://smartplus3-api-dev.pea.co.th/API/Outage/History', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -103,7 +103,7 @@ export default function PowerFailureReportPage() {
         pfId: parseInt(pfId),
         lang: 'TH'
       };
-      const res = await fetch('/API/Outage/Detail', {
+      const res = await fetch('https://smartplus3-api-dev.pea.co.th/API/Outage/Detail', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -144,7 +144,7 @@ export default function PowerFailureReportPage() {
         Lang: 'TH'
       };
       
-      const res = await fetch('/API/Outage/SendReport', {
+      const res = await fetch('https://smartplus3-api-dev.pea.co.th/API/Outage/SendReport', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
