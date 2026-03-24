@@ -7,20 +7,26 @@ import { useUserProfile } from "@/components/providers/UserProfileProvider";
 import { useRouter } from "next/navigation";
 
 export default function HomePage() {
-  const { profile } = useUserProfile();
+  const { profile, isHomeLoaded, setHomeLoaded } = useUserProfile();
   const router = useRouter();
-  // ใช้ sessionStorage เพื่อแสดงโหลดแค่ครั้งแรกของ session
-  const [loading, setLoading] = useState(() => {
-    if (typeof window !== "undefined") {
-      return sessionStorage.getItem("hasLoadedHome") !== "true";
+  const [loading, setLoading] = useState(!isHomeLoaded);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    if (!isHomeLoaded) {
+      const timer = setTimeout(() => {
+        setLoading(false);
+        setHomeLoaded(true);
+      }, 1500);
+      return () => clearTimeout(timer);
     }
-    return true;
-  });
+  }, [isHomeLoaded, setHomeLoaded]);
 
   const sharedUser = {
     id: profile.id,
     idenNumber: profile.idenNumber,
-    name: profile.fullName,
+    name: `คุณ${profile.firstName}`,
     balance: profile.balance,
     ca: profile.ca,
     accountName: profile.accountName,
@@ -29,21 +35,14 @@ export default function HomePage() {
   };
 
   useEffect(() => {
-    localStorage.setItem("UserAccIdenNumber", profile.idenNumber);
-    localStorage.setItem("SetLanguage", "TH");
-
-    // ถ้ายังไม่เคยเข้า Home ใน session นี้ ให้แสดงโหลด แล้ว set flag
-    if (loading) {
-      const timer = setTimeout(() => {
-        setLoading(false);
-        sessionStorage.setItem("hasLoadedHome", "true");
-      }, 1500);
-      return () => clearTimeout(timer);
+    if (mounted) {
+      localStorage.setItem("UserAccIdenNumber", profile.idenNumber);
+      localStorage.setItem("SetLanguage", "TH");
     }
-  }, [profile.idenNumber, loading]);
+  }, [profile.idenNumber, mounted]);
 
   useEffect(() => {
-    if (!loading) {
+    if (mounted && !loading) {
       const hasShown = sessionStorage.getItem("hasShownEvaluation");
       if (!hasShown) {
         const timer = setTimeout(() => {
@@ -53,9 +52,9 @@ export default function HomePage() {
         return () => clearTimeout(timer);
       }
     }
-  }, [loading, router]);
+  }, [loading, router, mounted]);
 
-  if (loading) {
+  if (!mounted || loading) {
     return <LoadingView />;
   }
 

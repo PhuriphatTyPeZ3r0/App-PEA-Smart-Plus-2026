@@ -18,6 +18,8 @@ export interface UserProfile {
   currentAddress: string;
   pendingPhone: string;
   pendingEmail: string;
+  avatarUrl?: string;
+  isVerified?: boolean;
 }
 
 export const USER_PROFILE_STORAGE_KEY = "pea-smart-plus:user-profile:v1";
@@ -25,10 +27,10 @@ export const USER_PROFILE_STORAGE_KEY = "pea-smart-plus:user-profile:v1";
 export const DEFAULT_USER_PROFILE: UserProfile = {
   id: "90",
   idenNumber: "oPunVQb7OgaT3y6lyuUDrU+oCRct4OBM8kNgjGw=",
-  title: "คุณ",
+  title: "นางสาว",
   firstName: "ศิญาพร",
   lastName: "สวยดี",
-  fullName: "คุณศิญาพร สวยดี",
+  fullName: "นางสาวศิญาพร สวยดี",
   citizenNo: "1819900528841",
   birthDate: "05/11/2548",
   phone: "0910243212",
@@ -42,14 +44,24 @@ export const DEFAULT_USER_PROFILE: UserProfile = {
   currentAddress: "บ้านเลขที่ 95 ถ.มหาราช ต.ปากน้ำ อ.เมืองกระบี่ จ.กระบี่ 81000",
   pendingPhone: "",
   pendingEmail: "",
+  avatarUrl: "/avatar.png",
+  isVerified: true,
 };
 
-const LEGACY_DEFAULT_NAME = {
-  title: "คุณ",
-  firstName: "ภูริพัฒน์",
-  lastName: "เหมกุล",
-  fullName: "คุณ ภูริพัฒน์ เหมกุล",
-} as const;
+const LEGACY_DEFAULT_NAMES = [
+  {
+    title: "คุณ",
+    firstName: "ภูริพัฒน์",
+    lastName: "เหมกุล",
+    fullName: "คุณ ภูริพัฒน์ เหมกุล",
+  },
+  {
+    title: "คุณ",
+    firstName: "ศิญาพร",
+    lastName: "สวยดี",
+    fullName: "คุณศิญาพร สวยดี",
+  }
+] as const;
 
 const hasMojibakeControls = (value: string): boolean => /[\u0080-\u009f]/.test(value);
 
@@ -75,14 +87,15 @@ export const sanitizeUserProfile = (profile: UserProfile): UserProfile => {
   const lastName = sanitizeReadableText(profile.lastName, DEFAULT_USER_PROFILE.lastName);
   const fullName = sanitizeReadableText(profile.fullName, DEFAULT_USER_PROFILE.fullName);
 
-  const usesLegacyDefaultName =
-    fullName === LEGACY_DEFAULT_NAME.fullName ||
-    (firstName === LEGACY_DEFAULT_NAME.firstName && lastName === LEGACY_DEFAULT_NAME.lastName);
+  const isLegacy = LEGACY_DEFAULT_NAMES.some(legacy => 
+    fullName === legacy.fullName || 
+    (firstName === legacy.firstName && lastName === legacy.lastName)
+  );
 
-  const resolvedTitle = usesLegacyDefaultName ? DEFAULT_USER_PROFILE.title : title;
-  const resolvedFirstName = usesLegacyDefaultName ? DEFAULT_USER_PROFILE.firstName : firstName;
-  const resolvedLastName = usesLegacyDefaultName ? DEFAULT_USER_PROFILE.lastName : lastName;
-  const resolvedFullName = usesLegacyDefaultName ? DEFAULT_USER_PROFILE.fullName : fullName;
+  const resolvedTitle = isLegacy ? DEFAULT_USER_PROFILE.title : title;
+  const resolvedFirstName = isLegacy ? DEFAULT_USER_PROFILE.firstName : firstName;
+  const resolvedLastName = isLegacy ? DEFAULT_USER_PROFILE.lastName : lastName;
+  const resolvedFullName = isLegacy ? DEFAULT_USER_PROFILE.fullName : fullName;
 
   return {
     ...profile,

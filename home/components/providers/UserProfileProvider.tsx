@@ -18,6 +18,8 @@ interface UserProfileContextValue {
   setPendingEmail: (email: string) => void;
   confirmEmailChange: () => void;
   clearPendingEmail: () => void;
+  isHomeLoaded: boolean;
+  setHomeLoaded: (value: boolean) => void;
 }
 
 const UserProfileContext = createContext<UserProfileContextValue | null>(null);
@@ -35,6 +37,7 @@ const mergeWithDefaults = (stored: Partial<UserProfile>): UserProfile =>
 export function UserProfileProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile>(DEFAULT_USER_PROFILE);
   const [isClient, setIsClient] = useState(false);
+  const [isHomeLoaded, setHomeLoaded] = useState(false);
 
   useEffect(() => {
     try {
@@ -107,6 +110,8 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
       setPendingEmail,
       confirmEmailChange,
       clearPendingEmail,
+      isHomeLoaded,
+      setHomeLoaded,
     }),
     [
       profile,
@@ -116,6 +121,8 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
       setPendingEmail,
       confirmEmailChange,
       clearPendingEmail,
+      isHomeLoaded,
+      setHomeLoaded,
     ]
   );
 
