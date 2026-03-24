@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Prompt } from "next/font/google";
 import "./globals.css";
+import { UserProfileProvider } from "../components/providers/UserProfileProvider";
 
 const prompt = Prompt({
   subsets: ["latin", "thai"],
@@ -19,7 +20,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="th">
-      <body className={prompt.className}>{children}</body>
+      <body className={prompt.className}>
+        <UserProfileProvider>
+          {children}
+        </UserProfileProvider>
+      </body>
     </html>
   );
 }
