@@ -31,13 +31,13 @@ const TAB_ITEMS: TabItem[] = [
     activeIcon: "/asset/tab-bar-asset/active-service-nav-bar.png",
   },
   {
-    href: "/service-all",
+    href: "/watt-d-point",
     label: "พอยต์",
     icon: "/asset/tab-bar-asset/watt-d-point-nav-bar.svg",
     activeIcon: "/asset/tab-bar-asset/active-watt-d-point.png",
   },
   {
-    href: "/profile",
+    href: "/edit-profile",
     label: "โปรไฟล์",
     icon: "/asset/tab-bar-asset/user-avatar-nav-bar.svg",
     activeIcon: "/asset/tab-bar-asset/active-avatar-nav-bar.png",
