@@ -16,11 +16,12 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
-        source: '/API/Outage/:path*',
-        destination: 'https://smartplus3-api-dev.pea.co.th/API/Outage/:path*',
+        source: '/API/:path*',
+        destination: 'https://smartplus3-api-dev.pea.co.th/API/:path*',
       },
     ]
   },
+  allowedDevOrigins: ['172.29.138.86', '172.29.138.86:3443'],
 };
 
 export default nextConfig;

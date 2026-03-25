@@ -54,7 +54,8 @@ function isActivePath(currentPath: string, href: string) {
 export default function GlobalTabBar() {
   const pathname = usePathname();
 
-  if (pathname === "/evaluation" || pathname === "/power-failure-report") {
+  const errorPaths = ["/system-error", "/no-internet", "/loading-error"];
+  if (pathname === "/evaluation" || pathname === "/power-failure-report" || errorPaths.includes(pathname)) {
     return null;
   }
 

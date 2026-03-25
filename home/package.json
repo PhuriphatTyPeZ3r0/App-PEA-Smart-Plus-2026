@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev --webpack",
     "dev:turbopack": "next dev --turbopack",
+    "dev:https": "node server.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"

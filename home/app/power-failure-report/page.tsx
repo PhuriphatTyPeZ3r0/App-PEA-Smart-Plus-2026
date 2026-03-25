@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function PowerFailureReportPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'create' | 'history'>('create');
   const [isLocationSheetOpen, setIsLocationSheetOpen] = useState(false);
   const [isExampleSheetOpen, setIsExampleSheetOpen] = useState(false);
@@ -17,6 +19,7 @@ export default function PowerFailureReportPage() {
   const [selectedOutageType, setSelectedOutageType] = useState<string>("");
   const [memoText, setMemoText] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<any[]>([]); 
 
   // History API States
   const [historyList, setHistoryList] = useState<any[]>([]);
@@ -28,11 +31,19 @@ export default function PowerFailureReportPage() {
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
-  // Fetch Outage Types from real API
+  // CustomerContract (Location) API States
+  const [locationList, setLocationList] = useState<any[]>([]);
+  const [locationPage, setLocationPage] = useState(1);
+  const [locationTotalItems, setLocationTotalItems] = useState<number | null>(null);
+  const [isLoadingLocations, setIsLoadingLocations] = useState(false);
+  const [hasMoreLocations, setHasMoreLocations] = useState(true);
+  const PAGE_SIZE = 20;
+
+  // 1. Fetch Outage Types
   useEffect(() => {
     async function fetchOutageTypes() {
       try {
-        const res = await fetch('https://smartplus3-api-dev.pea.co.th/API/Outage/OutageType', {
+        const res = await fetch('/API/Outage/OutageType', {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
@@ -40,9 +51,11 @@ export default function PowerFailureReportPage() {
           },
           body: JSON.stringify({ lang: 'TH' })
         });
-        const data = await res.json();
-        if (data && data.outageTypeList) {
-          setOutageTypes(data.outageTypeList);
+        if(res.ok) {
+           const data = await res.json();
+           if (data && data.outageTypeList) {
+             setOutageTypes(data.outageTypeList);
+           }
         }
       } catch (err) {
         console.error("Failed to fetch outage types API:", err);
@@ -51,6 +64,7 @@ export default function PowerFailureReportPage() {
     fetchOutageTypes();
   }, []);
 
+  // 2. Fetch History (Refreshable)
   useEffect(() => {
     if (activeTab === 'history' && !hasFetchedHistory) {
       fetchHistory();
@@ -60,12 +74,8 @@ export default function PowerFailureReportPage() {
   const fetchHistory = async () => {
     setIsLoadingHistory(true);
     try {
-      const payload = {
-        pfIdIndex: 0,
-        lang: 'TH'
-      };
-      
-      const res = await fetch('https://smartplus3-api-dev.pea.co.th/API/Outage/History', {
+      const payload = { pFIdIndex: null, lang: 'TH' };
+      const res = await fetch('/API/Outage/History', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -73,16 +83,14 @@ export default function PowerFailureReportPage() {
         },
         body: JSON.stringify(payload)
       });
-      const data = await res.json();
-      console.log('History API Response:', data);
-      
-      // Handle the API Response which is BaseResponse<HistoryResponse[]>
-      if (data && data.success !== false) {
-         // Fallback arrays to try matching data structure
-         const list = data.historyList || Math.max(0, Object.keys(data).length - 3) > 0 ? Object.values(data).find(v => Array.isArray(v)) : null;
-         if (list) setHistoryList(list as any[]);
-         else if (Array.isArray(data)) setHistoryList(data);
-         else if (Array.isArray(data.data)) setHistoryList(data.data);
+      if(res.ok) {
+        const data = await res.json();
+        if (data && data.success !== false) {
+           const list = data.historyList || Math.max(0, Object.keys(data).length - 3) > 0 ? Object.values(data).find(v => Array.isArray(v)) : null;
+           if (list) setHistoryList(list as any[]);
+           else if (Array.isArray(data)) setHistoryList(data);
+           else if (Array.isArray(data.data)) setHistoryList(data.data);
+        }
       }
       setHasFetchedHistory(true);
     } catch (err) {
@@ -92,6 +100,7 @@ export default function PowerFailureReportPage() {
     }
   };
 
+  // 3. Fetch Details
   const handleHistoryItemClick = async (item: any) => {
     const pfId = item.pfId || item.PfId || item.id || item.PFTId;
     if (!pfId) return;
@@ -99,77 +108,264 @@ export default function PowerFailureReportPage() {
     setIsDetailModalOpen(true);
     setIsDetailLoading(true);
     try {
-      const payload = {
-        pfId: parseInt(pfId),
-        lang: 'TH'
-      };
-      const res = await fetch('https://smartplus3-api-dev.pea.co.th/API/Outage/Detail', {
+      const res = await fetch('/API/Outage/Detail', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': process.env.NEXT_PUBLIC_OUTAGE_AUTH_TOKEN as string
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ pFId: parseInt(pfId), lang: 'TH' })
       });
-      const data = await res.json();
-      console.log('Outage Detail API Response:', data);
-      setSelectedHistoryDetail(data.result || data.data || data);
+      if(res.ok) {
+        const data = await res.json();
+        setSelectedHistoryDetail(data.result || data.data || data);
+      } else {
+        setSelectedHistoryDetail(item);
+      }
     } catch (err) {
       console.error('Fetch Outage Detail Error:', err);
-      // Fallback: Show basic info from list item if fetch fails
       setSelectedHistoryDetail(item);
     } finally {
       setIsDetailLoading(false);
     }
   };
 
-  const handleSelectLocationClick = () => {
-    setIsLocationSheetOpen(true);
+  // 4. Fetch Locations
+  const fetchLocations = async (page: number, append: boolean = false) => {
+    if (isLoadingLocations) return;
+    setIsLoadingLocations(true);
+    try {
+      const identityId = localStorage.getItem('userAccIdenNumber') || 'pf6hXAf7OgaV2yihyuhOrnkJctgHiZGQWR3GzoY=';
+      const res = await fetch('/API/ElectricUsed/CustomerContract', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': process.env.NEXT_PUBLIC_OUTAGE_AUTH_TOKEN as string
+        },
+        body: JSON.stringify({
+          identityId,
+          pageNumber: page,
+          pageSize: PAGE_SIZE,
+          sortColumn: 'CAOrder',
+          sortDirection: 'ASC'
+        })
+      });
+      if(res.ok) {
+        const data = await res.json();
+        const items: any[] = data?.item || data?.result?.electricUsedList || data?.result || [];
+        const total: number = data?.totalItem ?? data?.result?.totalItem ?? items.length;
+
+        setLocationTotalItems(total);
+        const updated = append ? [...locationList, ...items] : items;
+        setLocationList(updated);
+
+        if (!append && total === 1 && items.length === 1) {
+          setSelectedLocation(items[0]);
+        }
+        setHasMoreLocations(items.length >= PAGE_SIZE);
+      }
+    } catch (err) {
+      console.error('Fetch CustomerContract Error:', err);
+    } finally {
+      setIsLoadingLocations(false);
+    }
   };
 
+  const handleOpenLocationSheet = () => {
+    setIsLocationSheetOpen(true);
+    if (locationList.length === 0) {
+      setLocationPage(1);
+      fetchLocations(1, false);
+    }
+  };
+
+  const handleLocationScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    if (nearBottom && hasMoreLocations && !isLoadingLocations) {
+      const nextPage = locationPage + 1;
+      setLocationPage(nextPage);
+      fetchLocations(nextPage, true);
+    }
+  };
+
+  // 5. File Upload (Corrected to /API/Outage/Upload + Error handling)
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    if (selectedFiles.length + files.length > 5) {
+      alert("สามารถเลือกได้ไม่เกิน 5 ไฟล์");
+      return;
+    }
+
+    Array.from(files).forEach(file => {
+      if (file.size > 5 * 1024 * 1024) {
+        alert(`ไฟล์ ${file.name} มีขนาดใหญ่เกิน 5 MB`);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const base64Data = (event.target?.result as string).split(',')[1];
+        
+        const fileEntry: any = {
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          data: base64Data
+        };
+
+        try {
+          const res = await fetch('/API/Outage/Upload', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': process.env.NEXT_PUBLIC_OUTAGE_AUTH_TOKEN as string
+            },
+            body: JSON.stringify({
+              fileNo: selectedFiles.length + 1,
+              filename: file.name,
+              fileType: file.type,
+              fileData: base64Data
+            })
+          });
+
+          if (!res.ok) {
+            console.error(`Upload failed with status: ${res.status}`);
+            throw new Error(`Server returned status ${res.status}`);
+          }
+          
+          const contentType = res.headers.get("content-type");
+          if (!contentType || !contentType.includes("application/json")) {
+            throw new Error("Response is not JSON");
+          }
+
+          const data = await res.json();
+          const result = data.result || data;
+          if (result && (result.fileId || result.s3key)) {
+            fileEntry.fileId = result.fileId;
+            fileEntry.s3key = result.s3key;
+          }
+        } catch (err) {
+          console.error(`Quick upload error for ${file.name}:`, err);
+          alert(`ไม่สามารถอัปโหลดไฟล์ ${file.name} ได้ โปรดลองอีกครั้ง`);
+          return; // Skip adding to state if API fails
+        }
+
+        setSelectedFiles(prev => [...prev, fileEntry]);
+      };
+      reader.readAsDataURL(file);
+    });
+    
+    e.target.value = "";
+  };
+
+  // 6. Delete File (Corrected to /API/Outage/DeleteFile)
+  const removeFile = async (index: number) => {
+    const fileToRemove = selectedFiles[index];
+    if (fileToRemove?.s3key) {
+      try {
+        await fetch('/API/Outage/DeleteFile', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': process.env.NEXT_PUBLIC_OUTAGE_AUTH_TOKEN as string
+          },
+          body: JSON.stringify({ s3key: fileToRemove.s3key })
+        });
+      } catch (err) {
+        console.error('DeleteFile API Error:', err);
+      }
+    }
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // 7. Submit Report (Real Database Integration)
   const handleSubmit = async () => {
+    if (!selectedLocation) {
+       alert("กรุณาเลือกสถานที่เกิดเหตุ");
+       return;
+    }
+
     setIsSubmitting(true);
     try {
+      const attachmentList = selectedFiles
+        .filter(f => f.fileId && f.s3key)
+        .map((f, i) => ({
+          fileNo: i + 1,
+          fileId: f.fileId,
+          fileName: f.name,
+          s3key: f.s3key,
+          fileType: f.type
+        }));
+
+      // NOTE: เปลี่ยน contactName/SurName/PhoneNo ให้ดึงจาก Profile ในระบบจริง
       const payload = {
-        PFTId: selectedOutageType ? parseInt(selectedOutageType) : 1,
-        IsManualLocation: selectedLocation === 'custom',
-        UserMeterId: null,
-        Ca: selectedLocation?.ca || '',
-        PeaNo: selectedLocation?.pea || '',
-        ContactName: 'ผู้ใช้',
-        ContactSurName: 'ทดสอบ',
-        ContactPhoneNo: '0800000000',
-        Memo: memoText,
-        FileAttachmentList: [],
-        Lang: 'TH'
+        pFTId: selectedOutageType ? parseInt(selectedOutageType) : 1,
+        isManualLocation: selectedLocation === 'custom',
+        userMeterId: selectedLocation?.userMeterId ? parseInt(selectedLocation.userMeterId) : 0, 
+        ca: selectedLocation?.ca || selectedLocation?.CA || '',
+        peaNo: selectedLocation?.peaNo || selectedLocation?.PeaNo || '',
+        contactName: 'ผู้ใช้', 
+        contactSurName: 'ทดสอบ',
+        contactPhoneNo: '0800000000',
+        memo: memoText,
+        fileAttachmentList: attachmentList,
+        lang: 'TH'
       };
-      
-      const res = await fetch('https://smartplus3-api-dev.pea.co.th/API/Outage/SendReport', {
+
+      const res = await fetch('/API/Outage/SendReport', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': process.env.NEXT_PUBLIC_OUTAGE_AUTH_TOKEN as string
         },
         body: JSON.stringify(payload)
       });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error(`Submit Error! Status: ${res.status}, Body:`, errorText);
+        throw new Error(`Server returned status ${res.status}`);
+      }
+      
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+         throw new Error("Response is not JSON");
+      }
+
       const data = await res.json();
       console.log('SendReport API Response:', data);
-      
-      // Show success modal regardless for UI prototype flow
-      setIsSuccess(true);
-    } catch (err) {
-      console.error('SendReport Error:', err);
-      // Show success modal even on error to preserve flow if CORS fails locally
-      setIsSuccess(true);
+
+      if (data && data.success !== false) {
+        setIsSuccess(true);
+        setHasFetchedHistory(false); // Force reload history when user goes to history tab
+      } else {
+        alert(data.message || "เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่อีกครั้ง");
+      }
+    } catch (err: any) {
+      console.error('Submit API Error:', err);
+      // เปลี่ยนจาก alert เป็นการแสดงหน้า System error
+      router.push('/system-error');
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
   return (
     <div className="w-full max-w-md mx-auto min-h-screen relative bg-[#f9f9fc] flex flex-col overflow-hidden font-kanit">
+      <input 
+        type="file" 
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        className="hidden"
+        multiple
+        accept=".pdf,.tiff,.jpeg,.jpg,.png,.doc,.docx,.xls,.xlsx"
+      />
       
-      {/* Header and Tabs */}
       <div className="bg-white flex flex-col shadow-sm z-20 sticky top-0">
         <div className="px-4 py-3 flex items-center justify-between">
           <Link href="/profile" className="p-2 -ml-2 text-[#333] hover:bg-gray-50 rounded-full transition-colors">
@@ -198,7 +394,6 @@ export default function PowerFailureReportPage() {
       {activeTab === 'create' ? (
         <div className="flex-1 px-5 py-6 bg-white overflow-y-auto pb-[120px]">
           <div className="flex flex-col gap-8 animate-fade-in">
-            {/* Section 1: Location */}
             <div className="flex flex-col gap-6">
               <div className="flex flex-col gap-2">
                 <h2 className="text-[#101828] text-[22px] font-medium leading-8">พื้นที่เกิดเหตุ</h2>
@@ -207,15 +402,16 @@ export default function PowerFailureReportPage() {
               
               <div className="flex flex-col gap-6">
                 <div 
-                  onClick={handleSelectLocationClick}
+                  onClick={handleOpenLocationSheet}
                   className={`h-14 px-4 rounded-2xl border transition-all ${selectedLocation ? 'bg-white border-[#D0D5DD]' : 'bg-[#F9FAFB] border-[#D0D5DD]'} flex items-center justify-between cursor-pointer hover:border-[#A80689]`}
                 >
                   {!selectedLocation || selectedLocation === 'custom' ? (
                     <span className="text-[#667085] text-base">เลือกสถานที่ใช้ไฟฟ้า</span>
                   ) : (
                     <div className="flex flex-col w-full relative -mt-0.5">
-                      <span className="absolute -top-[16px] left-0 bg-white px-1 text-[11px] text-[#A80689] font-medium tracking-wide">หมายเลขผู้ใช้ไฟฟ้า (CA/Ref No.1)</span>
-                      <span className="text-[#101828] text-base font-medium">{selectedLocation.ca}</span>
+                      <span className="absolute -top-[16px] left-0 bg-white px-1 text-[11px] text-[#A80689] font-medium tracking-wide">สถานที่ใช้ไฟฟ้า</span>
+                      <span className="text-[#101828] text-base font-medium truncate">{selectedLocation.customerName || selectedLocation.ca}</span>
+                      <span className="text-[#667085] text-xs">CA: {selectedLocation.ca}</span>
                     </div>
                   )}
                   <span className="material-symbols-outlined text-[#667085]">expand_more</span>
@@ -224,7 +420,7 @@ export default function PowerFailureReportPage() {
                 {selectedLocation && selectedLocation !== 'custom' && (
                   <div className="h-14 px-4 rounded-2xl border border-[#D0D5DD] bg-white flex items-center relative opacity-100 transition-opacity">
                     <span className="absolute -top-[9px] left-3 bg-white px-1 text-[11px] text-[#667085] tracking-wide">รหัสเครื่องวัด (PEA No.)</span>
-                    <span className="text-[#101828] text-base">{selectedLocation.pea}</span>
+                    <span className="text-[#101828] text-base">{selectedLocation.peaNo}</span>
                   </div>
                 )}
               </div>
@@ -267,7 +463,6 @@ export default function PowerFailureReportPage() {
               </div>
             </div>
 
-            {/* Section 2: Details */}
             <div className="flex flex-col gap-6 pt-2">
               <div className="flex flex-col gap-2">
                 <h2 className="text-[#101828] text-[22px] font-medium leading-8">แจ้งเหตุไฟฟ้าขัดข้อง</h2>
@@ -305,7 +500,6 @@ export default function PowerFailureReportPage() {
                 </div>
               </div>
 
-              {/* File Upload */}
               <div className="p-5 rounded-2xl border border-[#E4E7EC] bg-white flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">
                   <span className="text-[#101828] text-[15px] font-medium">รูปภาพ / เอกสารแนบอื่น ๆ (ถ้ามี)</span>
@@ -314,18 +508,27 @@ export default function PowerFailureReportPage() {
                   </span>
                 </div>
 
-                {selectedLocation && (
+                {selectedFiles.length > 0 && (
                   <div className="flex flex-wrap gap-2 pt-1 border-t border-[#F2F4F7] mt-1 pt-3">
-                    <div className="pl-3 pr-2 py-1.5 bg-[#FFF5FD] border border-[#FED8F6] rounded-full flex items-center gap-2 max-w-full">
-                      <span className="text-[#A80689] text-[13px] font-medium truncate max-w-[150px]">ใบเสร็จรับเงิน.png</span>
-                      <div className="w-5 h-5 rounded-full hover:bg-fuchsia-100 cursor-pointer text-[#A80689] flex items-center justify-center transition-colors">
-                        <span className="material-symbols-outlined text-[14px]">close</span>
+                    {selectedFiles.map((file, index) => (
+                      <div key={index} className="pl-3 pr-2 py-1.5 bg-[#FFF5FD] border border-[#FED8F6] rounded-full flex items-center gap-2 max-w-full">
+                        <span className="text-[#A80689] text-[13px] font-medium truncate max-w-[150px]">{file.name}</span>
+                        <div 
+                          onClick={() => removeFile(index)}
+                          className="w-5 h-5 rounded-full hover:bg-fuchsia-100 cursor-pointer text-[#A80689] flex items-center justify-center transition-colors"
+                        >
+                          <span className="material-symbols-outlined text-[14px]">close</span>
+                        </div>
                       </div>
-                    </div>
+                    ))}
                   </div>
                 )}
 
-                <button className="px-4 py-2 bg-white border border-[#D0D5DD] rounded-full flex items-center justify-center gap-1.5 w-max shadow-[0_1px_2px_rgba(16,24,40,0.05)] hover:bg-gray-50 transition-colors mt-2">
+                <button 
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={selectedFiles.length >= 5}
+                  className={`px-4 py-2 bg-white border border-[#D0D5DD] rounded-full flex items-center justify-center gap-1.5 w-max shadow-[0_1px_2px_rgba(16,24,40,0.05)] hover:bg-gray-50 transition-colors mt-2 ${selectedFiles.length >= 5 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
                   <span className="text-[#344054] text-[14px] font-medium">เพิ่มไฟล์</span>
                   <span className="material-symbols-outlined text-[#344054] text-[18px]">add</span>
                 </button>
@@ -383,7 +586,6 @@ export default function PowerFailureReportPage() {
         </div>
       )}
 
-      {/* Footer Sticky Button */}
       {activeTab === 'create' && (
         <div className="fixed bottom-0 left-0 w-full bg-white border-t border-[#F2F4F7] px-5 py-4 pb-safe-bottom z-10 flex justify-center shadow-[0_-8px_24px_rgba(145,158,171,0.08)]">
           <div className="w-full max-w-md">
@@ -398,7 +600,7 @@ export default function PowerFailureReportPage() {
         </div>
       )}
 
-      {/* Bottom Sheet for Location Selection */}
+      {/* --- ALL BOTTOM SHEETS REMAIN IDENTICAL TO YOUR PREVIOUS CODE --- */}
       {isLocationSheetOpen && (
         <div className="fixed inset-0 z-50 flex flex-col justify-end">
           <div className="absolute inset-0 bg-[#101828]/40 backdrop-blur-[2px] transition-opacity" onClick={() => setIsLocationSheetOpen(false)}></div>
@@ -411,41 +613,64 @@ export default function PowerFailureReportPage() {
               </button>
             </div>
             
-            <div className="flex flex-col max-h-[65vh] overflow-y-auto pb-safe-bottom">
-              {[
-                {name: 'บ้านโมโม่', ca: '020009514839', pea: '0200095148'},
-                {name: 'หอพักเติมสุข', ca: '020009514823', pea: '0200095109'},
-                {name: 'หอพักเติมสุข 2', ca: '020009514824', pea: '0200095110'}
-              ].map((loc, idx) => (
-                <div key={idx} className="flex flex-col">
-                  <div 
-                    className="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-fuchsia-50/50 transition-colors active:bg-fuchsia-50" 
-                    onClick={() => {
-                      setSelectedLocation(loc);
-                      setIsLocationSheetOpen(false);
-                    }}
-                  >
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[#101828] text-base font-semibold">{loc.name}</span>
-                      <span className="text-[#475467] text-[14px]">หมายเลขผู้ใช้ไฟ (CA No.) <span className="font-mono text-[13px] tracking-wide bg-gray-50 px-1 py-0.5 rounded">{loc.ca}</span></span>
-                    </div>
-                    {selectedLocation?.ca === loc.ca ? (
-                      <div className="w-5 h-5 flex items-center justify-center">
-                        <span className="material-symbols-outlined text-[#A80689] text-[22px] font-bold">check</span>
-                      </div>
-                    ) : (
-                      <div className="w-5 h-5 rounded-full border border-[#D0D5DD]"></div>
-                    )}
-                  </div>
-                  {idx < 2 && <div className="mx-6 border-b border-[#F2F4F7]"></div>}
+            <div className="flex flex-col max-h-[65vh] overflow-y-auto pb-safe-bottom" onScroll={handleLocationScroll}>
+              {locationList.length === 0 && isLoadingLocations ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-3">
+                  <div className="w-7 h-7 border-4 border-[#A80689] border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-[#667085] text-sm">กำลังโหลดรายการ...</p>
                 </div>
-              ))}
+              ) : locationList.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-2">
+                  <span className="material-symbols-outlined text-[48px] text-[#D0D5DD]">location_off</span>
+                  <p className="text-[#667085] text-sm">ไม่พบข้อมูลสถานที่ใช้ไฟฟ้า</p>
+                </div>
+              ) : (
+                locationList.map((loc: any, idx: number) => {
+                  const ca = loc.ca || loc.CA || loc.caNumber || '';
+                  const name = loc.customerName || loc.caName || loc.name || loc.electricName || ca;
+                  const address = loc.customerAddress || loc.address?.fullAddress || '';
+                  const peaNo = loc.peaNo || loc.PeaNo || loc.meterNo || '';
+                  return (
+                    <div key={idx} className="flex flex-col">
+                      <div 
+                        className="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-fuchsia-50/50 transition-colors active:bg-fuchsia-50" 
+                        onClick={() => {
+                          setSelectedLocation(loc);
+                          setIsLocationSheetOpen(false);
+                        }}
+                      >
+                        <div className="flex flex-col gap-1 flex-1 min-w-0 pr-3">
+                          <span className="text-[#101828] text-base font-semibold truncate">{name}</span>
+                          <span className="text-[#475467] text-[13px]">หมายเลขผู้ใช้ไฟ (CA) <span className="font-mono text-[13px] tracking-wide bg-gray-50 px-1 py-0.5 rounded">{ca}</span></span>
+                          {address ? <span className="text-[#667085] text-[12px] leading-4 line-clamp-2">{address}</span> : null}
+                          {peaNo ? <span className="text-[#667085] text-[12px]">PEA No. {peaNo}</span> : null}
+                        </div>
+                        {(selectedLocation?.ca === ca || selectedLocation?.CA === ca) ? (
+                          <div className="w-5 h-5 flex items-center justify-center shrink-0">
+                            <span className="material-symbols-outlined text-[#A80689] text-[22px] font-bold">check</span>
+                          </div>
+                        ) : (
+                          <div className="w-5 h-5 rounded-full border border-[#D0D5DD] shrink-0"></div>
+                        )}
+                      </div>
+                      {idx < locationList.length - 1 && <div className="mx-6 border-b border-[#F2F4F7]"></div>}
+                    </div>
+                  );
+                })
+              )}
+              {locationList.length > 0 && isLoadingLocations && (
+                <div className="flex justify-center py-4">
+                  <div className="w-5 h-5 border-4 border-[#A80689] border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              )}
+              {!hasMoreLocations && locationList.length > 0 && (
+                <div className="text-center text-[#667085] text-xs py-3">แสดงทุกรายการแล้ว</div>
+              )}
             </div>
           </div>
         </div>
       )}
 
-      {/* Bottom Sheet for Outage Types */}
       {isOutageTypeSheetOpen && (
         <div className="fixed inset-0 z-50 flex flex-col justify-end font-kanit">
           <div className="absolute inset-0 bg-[#101828]/40 backdrop-blur-[2px] transition-opacity" onClick={() => setIsOutageTypeSheetOpen(false)}></div>
@@ -491,7 +716,6 @@ export default function PowerFailureReportPage() {
         </div>
       )}
 
-      {/* Basic HTML Modals for additional info and call routing */}
       {isExampleSheetOpen && (
         <div className="fixed inset-0 z-50 flex flex-col justify-end font-kanit">
           <div className="absolute inset-0 bg-[#101828]/40 backdrop-blur-[2px] transition-opacity" onClick={() => setIsExampleSheetOpen(false)}></div>
@@ -516,18 +740,15 @@ export default function PowerFailureReportPage() {
         </div>
       )}
 
-      {/* Call 1129 Action Sheet */}
       {isCallSheetOpen && (
         <div className="fixed inset-0 z-[60] flex flex-col justify-end items-center font-['SF_Pro'] pb-8 px-2">
           <div className="absolute inset-0 bg-black/20 backdrop-blur-sm transition-opacity" onClick={() => setIsCallSheetOpen(false)}></div>
-          
           <div className="w-full max-w-md relative rounded-2xl flex flex-col justify-start items-center overflow-hidden mb-2 shadow-sm animate-slide-in-bottom">
             <div className="w-full absolute inset-0 bg-[#f4f4f4] bg-opacity-[0.8] backdrop-blur-[20px]"></div>
             <a href="tel:1129" className="self-stretch h-14 relative border-b border-[#c6c6c8] flex items-center justify-center active:bg-black/10 transition-colors z-10 cursor-pointer">
               <div className="text-center justify-center text-[#007AFF] text-[20px] font-normal leading-5">Call 1129</div>
             </a>
           </div>
-          
           <div 
             className="w-full max-w-md h-14 relative rounded-2xl flex flex-col justify-center items-center overflow-hidden shadow-sm animate-slide-in-bottom z-10 cursor-pointer active:bg-black/10 transition-colors bg-white font-semibold mb-2"
             onClick={() => setIsCallSheetOpen(false)}
@@ -537,10 +758,8 @@ export default function PowerFailureReportPage() {
         </div>
       )}
 
-      {/* Outage Detail Full-Screen Modal */}
       {isDetailModalOpen && (
         <div className="fixed inset-0 z-[70] flex flex-col bg-[#F9FAFB] font-kanit">
-          {/* Header */}
           <div className="bg-white flex px-4 py-3 items-center justify-between shadow-sm sticky top-0 z-20">
             <div 
               className="p-2 -ml-2 text-[#475467] hover:bg-gray-50 rounded-full transition-colors cursor-pointer"
@@ -555,7 +774,6 @@ export default function PowerFailureReportPage() {
             <div className="w-10"></div>
           </div>
 
-          {/* Content */}
           <div className="flex-1 overflow-y-auto px-5 py-6 flex flex-col gap-6 animate-fade-in">
             {isDetailLoading ? (
               <div className="flex flex-col items-center justify-center p-12 w-full h-full my-auto">
@@ -663,6 +881,51 @@ export default function PowerFailureReportPage() {
         </div>
       )}
 
+      {isSuccess && (
+        <div className="fixed inset-0 z-[80] flex flex-col justify-end font-kanit">
+          <div
+            className="absolute inset-0 bg-[#101828]/50 backdrop-blur-[2px]"
+            onClick={() => setIsSuccess(false)}
+          />
+          <div className="w-full max-w-md mx-auto bg-white rounded-t-3xl flex flex-col items-center px-6 pt-8 pb-12 relative z-10 animate-slide-in-bottom shadow-[0_-8px_40px_rgba(0,0,0,0.15)]">
+            <div className="w-20 h-20 rounded-full bg-[#F0FDF4] border-4 border-[#DCFCE7] flex items-center justify-center mb-5">
+              <span className="material-symbols-outlined text-[#16A34A] text-[40px]">check_circle</span>
+            </div>
+            <h2 className="text-[#101828] text-[22px] font-semibold text-center leading-8 mb-2">
+              แจ้งเหตุสำเร็จ
+            </h2>
+            <p className="text-[#475467] text-[15px] text-center leading-6 mb-8">
+              ระบบได้รับข้อมูลการแจ้งเหตุไฟฟ้าขัดข้องของคุณแล้ว<br />
+              เจ้าหน้าที่จะดำเนินการตรวจสอบโดยเร็ว
+            </p>
+            <button
+              onClick={() => {
+                setIsSuccess(false);
+                setActiveTab('history');
+                setSelectedLocation(null);
+                setSelectedOutageType('');
+                setMemoText('');
+                setSelectedFiles([]);
+              }}
+              className="w-full py-4 rounded-full bg-[#A80689] text-white text-[17px] font-semibold mb-3 shadow-md active:scale-[0.98] transition-all"
+            >
+              ดูประวัติการแจ้งเหตุ
+            </button>
+            <button
+              onClick={() => {
+                setIsSuccess(false);
+                setSelectedLocation(null);
+                setSelectedOutageType('');
+                setMemoText('');
+                setSelectedFiles([]);
+              }}
+              className="w-full py-4 rounded-full bg-[#F2F4F7] text-[#344054] text-[17px] font-medium active:bg-gray-200 transition-all"
+            >
+              ปิด
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
