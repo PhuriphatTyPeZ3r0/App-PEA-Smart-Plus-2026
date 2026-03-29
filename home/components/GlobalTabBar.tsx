@@ -19,7 +19,7 @@ const TAB_ITEMS: TabItem[] = [
     activeIcon: "/asset/tab-bar-asset/active-home-nav-bar.png",
   },
   {
-    href: "/location",
+    href: "/payment-location",
     label: "สถานที่ใช้ไฟฟ้า",
     icon: "/asset/tab-bar-asset/ca-nav-bar.svg",
     activeIcon: "/asset/tab-bar-asset/active-ca-nav-bar.png",
@@ -60,7 +60,7 @@ export default function GlobalTabBar() {
   }
 
   return (
-    <div data-tutorial="bottom-nav" className="pwa-tabbar absolute bottom-0 left-0 right-0 z-[60] bg-white/95 px-3 pb-safe-bottom pt-3 shadow-[0_-12px_32px_rgba(0,0,0,0.03)] backdrop-blur-2xl md:rounded-t-[32px] lg:px-6">
+    <div className="pwa-tabbar absolute bottom-0 left-0 right-0 z-[60] bg-white/95 px-3 pb-safe-bottom pt-3 shadow-[0_-12px_32px_rgba(0,0,0,0.03)] backdrop-blur-2xl md:rounded-t-[32px] lg:px-6">
       <div className="mx-auto flex w-full max-w-[1180px] items-center justify-around border-t border-slate-50/50 pt-1">
         {TAB_ITEMS.map((tab) => {
           const active = isActivePath(pathname, tab.href);
