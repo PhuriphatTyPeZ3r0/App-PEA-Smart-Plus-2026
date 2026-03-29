@@ -29,10 +29,13 @@ export default function ProfileHeader({
       <div className="grid grid-cols-3 items-center mb-10 relative z-10">
         <div></div>
         <div className="text-center text-[18px] font-bold text-[#101828]">บัญชีผู้ใช้</div>
-        <button className="flex items-center justify-end gap-1 text-[#86198f] hover:opacity-80 transition-opacity">
-          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>settings</span>
-          <span className="font-medium text-[14px]">ตั้งค่า</span>
-        </button>
+        <Link
+  href="/profile/settings"
+  className="flex items-center justify-end gap-1 text-[#86198f] hover:opacity-80 transition-opacity"
+>
+  <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>settings</span>
+  <span className="font-medium text-[14px]">ตั้งค่า</span>
+</Link>
       </div>
 
       <div className="flex items-center gap-4 relative z-10">
