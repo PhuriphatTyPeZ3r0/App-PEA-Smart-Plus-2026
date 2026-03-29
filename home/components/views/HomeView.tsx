@@ -146,6 +146,7 @@ export default function HomeView({ mockUser, isActive, onOpenEvaluation, onOpenN
 
               <button
                 type="button"
+                data-tutorial="home-notification"
                 onClick={onOpenNotifications}
                 className="relative flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-white/15 backdrop-blur-lg transition-transform active:scale-90 sm:h-11 sm:w-11"
                 aria-label="Notifications"
@@ -164,22 +165,26 @@ export default function HomeView({ mockUser, isActive, onOpenEvaluation, onOpenN
 
           <div className="relative z-20 mx-auto -mt-16 w-full max-w-[1180px] px-5 sm:-mt-20 sm:px-6 lg:-mt-24 lg:px-10">
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
-              <AccountSummaryCard
-                accountName={mockUser.accountName}
-                accountNumber={mockUser.ca}
-                balance={mockUser.balance}
-                dueDate={mockUser.dueDate}
-                onPayBill={() => {}}
-                onSwitchAccount={() => {}}
-              />
+              <div data-tutorial="payment-card">
+                <AccountSummaryCard
+                  accountName={mockUser.accountName}
+                  accountNumber={mockUser.ca}
+                  balance={mockUser.balance}
+                  dueDate={mockUser.dueDate}
+                  onPayBill={() => {}}
+                  onSwitchAccount={() => {}}
+                />
+              </div>
 
-              <FoundNewCACard count={mockUser.newServiceLocationCount} />
+              <div data-tutorial="new-ca-card">
+                <FoundNewCACard count={mockUser.newServiceLocationCount} />
+              </div>
             </div>
           </div>
         </div>
 
         <div className="mx-auto w-full max-w-[1180px] px-4 pb-10 pt-8 sm:px-6 lg:px-10">
-          <section className="mx-auto w-full max-w-[760px]">
+          <section className="mx-auto w-full max-w-[760px]" data-tutorial="quick-actions">
             <div className="grid grid-cols-4 gap-x-2 gap-y-7 sm:gap-x-4 sm:gap-y-8 lg:gap-x-6">
               {QUICK_ACTIONS.map((item) => {
                 const isExtra = item.label === "ดูเพิ่มเติม";
@@ -265,7 +270,7 @@ export default function HomeView({ mockUser, isActive, onOpenEvaluation, onOpenN
             </div>
           </section>
 
-          <section className="mt-10">
+          <section className="mt-10" data-tutorial="privileges-section">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-black">สิทธิพิเศษ</h2>
               <button className="text-sm font-medium text-[#A80689] transition-transform active:scale-95">ดูทั้งหมด</button>
