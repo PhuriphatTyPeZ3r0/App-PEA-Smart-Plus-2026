@@ -12,12 +12,12 @@ export default function TermsPage() {
   const handleScroll = () => {
     const el = contentRef.current;
     if (!el) return;
-    const isBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 5;
+    const isBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 20;
     
     if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
     scrollTimerRef.current = setTimeout(() => {
       setIsAtBottom(isBottom);
-    }, 100);
+    }, 50);
   };
 
   return (
@@ -60,7 +60,7 @@ export default function TermsPage() {
         <p style={styles.para}>
           เว็บไซต์ของบริษัทอาจประกอบด้วยเว็บไซต์หรือเว็บเพจต่างๆ ที่ดำเนินการโดยบริษัท
           ซึ่งมีสำนักงานใหญ่ตั้งอยู่ เลขที่ 200 ถนนงามวงศ์วาน แขวงลาดยาว เขตจตุจักร กทม. 10900
-          (เว็บไซต์และเว็บเพจทั้งหมดนี้จะรวมเรียกว่า "เว็บไซต์ของบริษัท")
+          (เว็บไซต์และเว็บเพจทั้งหมดนี้จะรวมเรียกว่า {'"เว็บไซต์ของบริษัท"'})
           การใช้งานเว็บไซต์ของบริษัทอยู่ภายใต้เงื่อนไขว่าท่านจะต้องตกลงและยอมรับข้อตกลงการใช้งานเว็บไซต์นี้
           โดยไม่แก้ไขประการใดทั้งสิ้น การที่ท่านใช้งานเว็บไซต์ของบริษัทย่อมก่อให้เกิดความผูกพันทางกฎหมาย
           ตามข้อกำหนดที่ระบุไว้ในข้อตกลงการใช้งานเว็บไซต์
