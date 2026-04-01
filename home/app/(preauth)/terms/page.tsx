@@ -7,12 +7,17 @@ export default function TermsPage() {
   const router = useRouter();
   const contentRef = useRef<HTMLDivElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(false);
+  const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleScroll = () => {
     const el = contentRef.current;
     if (!el) return;
     const isBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 5;
-    setIsAtBottom(isBottom);
+    
+    if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+    scrollTimerRef.current = setTimeout(() => {
+      setIsAtBottom(isBottom);
+    }, 100);
   };
 
   return (
@@ -105,6 +110,7 @@ export default function TermsPage() {
               top: contentRef.current.scrollHeight,
               behavior: "smooth",
             });
+            setTimeout(() => setIsAtBottom(true), 500);
           }}>
             เลื่อนไปด้านล่าง
           </button>
