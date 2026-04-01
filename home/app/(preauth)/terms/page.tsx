@@ -7,17 +7,12 @@ export default function TermsPage() {
   const router = useRouter();
   const contentRef = useRef<HTMLDivElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(false);
-  const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleScroll = () => {
     const el = contentRef.current;
     if (!el) return;
-    const isBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 20;
-    
-    if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
-    scrollTimerRef.current = setTimeout(() => {
-      setIsAtBottom(isBottom);
-    }, 50);
+    const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 60;
+    if (atBottom) setIsAtBottom(true);
   };
 
   return (
