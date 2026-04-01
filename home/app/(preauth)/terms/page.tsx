@@ -12,7 +12,7 @@ export default function TermsPage() {
     const el = contentRef.current;
     if (!el) return;
     const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 60;
-    if (atBottom) setIsAtBottom(true);
+    setIsAtBottom(atBottom);
   };
 
   return (
